@@ -82,7 +82,7 @@ public class ExtensionLoader<T> {
 
     private final Holder<Map<String, Class<?>>> cachedClasses = new Holder<Map<String, Class<?>>>();
 
-    private final Map<String, Activate> cachedActivates = new ConcurrentHashMap<String, Activate>();
+    private final Map<String/*名称*/, Activate> cachedActivates = new ConcurrentHashMap<String, Activate>();
     private final ConcurrentMap<String, Holder<Object>> cachedInstances = new ConcurrentHashMap<String, Holder<Object>>();
     private final Holder<Object> cachedAdaptiveInstance = new Holder<Object>();
     private volatile Class<?> cachedAdaptiveClass = null;
@@ -183,23 +183,70 @@ public class ExtensionLoader<T> {
      */
     public List<T> getActivateExtension(URL url, String[] values, String group) {
         List<T> exts = new ArrayList<T>();
+        /**
+         * 将传递过来的values包装成List类型的names
+         */
         List<String> names = values == null ? new ArrayList<String>(0) : Arrays.asList(values);
+        /**
+         * 包装好的数据中不包含"-default"
+         */
         if (!names.contains(Constants.REMOVE_VALUE_PREFIX + Constants.DEFAULT_KEY)) {
+            /**
+             * 获取这个类型的数据的所有扩展信息
+             */
             getExtensionClasses();
             for (Map.Entry<String, Activate> entry : cachedActivates.entrySet()) {
+                /**
+                 * 获取扩展的名称
+                 */
                 String name = entry.getKey();
+                /**
+                 * 获取扩展的注解
+                 */
                 Activate activate = entry.getValue();
+                /**
+                 * 判断group是否属于范围
+                 *
+                 * 1. 如果activate注解的group没有设定，直接返回true
+                 * 2. 如果设定了，需要和传入的额group进行比较，看是否
+                 * 包含其中，如果包含，返回true
+                 *
+                 */
                 if (isMatchGroup(group, activate.group())) {
+                    /**
+                     * group 校验通过了，从缓存中获取此name对应的实例
+                     */
                     T ext = getExtension(name);
+                    /**
+                     * names 不包含 遍历此时的name
+                     */
                     if (!names.contains(name)
+                            /**
+                             * names中不包含"-default"
+                             */
                             && !names.contains(Constants.REMOVE_VALUE_PREFIX + name)
+                            /**
+                             * 通过URL判断这个activate注解是激活的
+                             */
                             && isActive(activate, url)) {
+                        /**
+                         * 增加扩展
+                         */
                         exts.add(ext);
                     }
                 }
             }
+            /**
+             * 按照Activate的方式进行排序，注意order
+             */
             Collections.sort(exts, ActivateComparator.COMPARATOR);
         }
+        /**
+         * 借用usrs这个临时变量，进行循环往exts中塞具体的ext的对象。
+         * 如果碰到了"default"就添加到头部，清空usrs这个临时变量。
+         * 如果没有"default"那么usrs不会清空，所以下面有个if，说usrs不为空
+         * 将里面的内容增加到exts中
+         */
         List<T> usrs = new ArrayList<T>();
         for (int i = 0; i < names.size(); i++) {
             String name = names.get(i);
@@ -222,6 +269,13 @@ public class ExtensionLoader<T> {
         return exts;
     }
 
+    /**
+     * 判断group是否属于范围
+     * <p>
+     * 1. 如果activate注解的group没有设定，直接返回true
+     * 2. 如果设定了，需要和传入的额group进行比较，看是否
+     * 包含其中，如果包含，返回true
+     */
     private boolean isMatchGroup(String group, String[] groups) {
         if (group == null || group.length() == 0) {
             return true;
@@ -238,10 +292,20 @@ public class ExtensionLoader<T> {
 
     private boolean isActive(Activate activate, URL url) {
         String[] keys = activate.value();
-        if (keys == null || keys.length == 0) {
+        /**
+         * 如果@Activate注解中的value是空的直接返回true
+         */
+        if (keys.length == 0) {
             return true;
         }
+        /**
+         * 从activate.value()拿到的数据进行遍历
+         */
         for (String key : keys) {
+            /**
+             * 从URL中获取参数，进行遍历，如果有一个参数同key一致，或者是以.key的方式结尾。
+             * 并且url中这个k对应的v有有意义的值，同样返回true
+             */
             for (Map.Entry<String, String> entry : url.getParameters().entrySet()) {
                 String k = entry.getKey();
                 String v = entry.getValue();

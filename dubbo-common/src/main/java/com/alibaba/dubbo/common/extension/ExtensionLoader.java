@@ -562,19 +562,31 @@ public class ExtensionLoader<T> {
 
     // synchronized in getExtensionClasses
     private Map<String, Class<?>> loadExtensionClasses() {
+        /**
+         * 获取到类型的SPI注解，所以利用SPI扩展点的地方，需要加入SPI注解
+         */
         final SPI defaultAnnotation = type.getAnnotation(SPI.class);
         if (defaultAnnotation != null) {
             String value = defaultAnnotation.value();
-            if (value != null && (value = value.trim()).length() > 0) {
+            if ((value = value.trim()).length() > 0) {
                 String[] names = NAME_SEPARATOR.split(value);
                 if (names.length > 1) {
                     throw new IllegalStateException("more than 1 default extension name on extension " + type.getName()
                             + ": " + Arrays.toString(names));
                 }
+                /**
+                 * 如果注解中有value，说明有默认的实现，那么将value放到cachedDefaultName中
+                 */
                 if (names.length == 1) cachedDefaultName = names[0];
             }
         }
 
+        /**
+         * 从下面的地址中加在这个类型的数据的extensionClasses中，地址包括
+         * META-INF/dubbo/internal/
+         * META-INF/dubbo/
+         * META-INF/services/
+         */
         Map<String, Class<?>> extensionClasses = new HashMap<String, Class<?>>();
         loadFile(extensionClasses, DUBBO_INTERNAL_DIRECTORY);
         loadFile(extensionClasses, DUBBO_DIRECTORY);
@@ -600,43 +612,81 @@ public class ExtensionLoader<T> {
                         try {
                             String line = null;
                             while ((line = reader.readLine()) != null) {
+                                /**
+                                 * # 之前的内容是我们需要的数据，后面的内容可以认为是注释之类的
+                                 */
                                 final int ci = line.indexOf('#');
                                 if (ci >= 0) line = line.substring(0, ci);
                                 line = line.trim();
                                 if (line.length() > 0) {
                                     try {
                                         String name = null;
+                                        /**
+                                         * 看下=的位置，如果有等号，那么=前面的数据是名称，后面的要实现的类的全路径名称
+                                         */
                                         int i = line.indexOf('=');
                                         if (i > 0) {
                                             name = line.substring(0, i).trim();
                                             line = line.substring(i + 1).trim();
                                         }
                                         if (line.length() > 0) {
+                                            /**
+                                             * 加载解析出来的类的全限定名称
+                                             */
                                             Class<?> clazz = Class.forName(line, true, classLoader);
+                                            /**
+                                             * 判断是新加载clazz是否是type的子类，不是报错
+                                             */
                                             if (!type.isAssignableFrom(clazz)) {
                                                 throw new IllegalStateException("Error when load extension class(interface: " +
                                                         type + ", class line: " + clazz.getName() + "), class "
                                                         + clazz.getName() + "is not subtype of interface.");
                                             }
+                                            /**
+                                             * 判断这个加载的类上，有没有Adaptive的注解，如果有
+                                             */
                                             if (clazz.isAnnotationPresent(Adaptive.class)) {
                                                 if (cachedAdaptiveClass == null) {
+                                                    /**
+                                                     * 将此类作为cachedAdaptiveClass
+                                                     */
                                                     cachedAdaptiveClass = clazz;
-                                                } else if (!cachedAdaptiveClass.equals(clazz)) {
+                                                }
+                                                /**
+                                                 * 多个adaptive类的实例，报错
+                                                 */
+                                                else if (!cachedAdaptiveClass.equals(clazz)) {
                                                     throw new IllegalStateException("More than 1 adaptive class found: "
                                                             + cachedAdaptiveClass.getClass().getName()
                                                             + ", " + clazz.getClass().getName());
                                                 }
-                                            } else {
+                                            }
+                                            /**
+                                             * 如果这个类，没有Adaptive注解
+                                             */
+                                            else {
                                                 try {
+                                                    /**
+                                                     * 看看这个类，有没有此类型的构造方法，主要是Wrapper类使用，如果有，说明是个wrapper类
+                                                     */
                                                     clazz.getConstructor(type);
                                                     Set<Class<?>> wrappers = cachedWrapperClasses;
                                                     if (wrappers == null) {
                                                         cachedWrapperClasses = new ConcurrentHashSet<Class<?>>();
                                                         wrappers = cachedWrapperClasses;
                                                     }
+                                                    /**
+                                                     * 将此wrapper放入wrappers容器里面，也就是cachedWrapperClasses里面
+                                                     */
                                                     wrappers.add(clazz);
                                                 } catch (NoSuchMethodException e) {
+                                                    /**
+                                                     * 如果不是wapper类型的数据，肯定会抛异常，被捕获，到了这里，说明是个正常的类
+                                                     */
                                                     clazz.getConstructor();
+                                                    /**
+                                                     * 如果name没有写的话，就使用默认的规则生成一个
+                                                     */
                                                     if (name == null || name.length() == 0) {
                                                         name = findAnnotationName(clazz);
                                                         if (name == null || name.length() == 0) {
@@ -650,16 +700,22 @@ public class ExtensionLoader<T> {
                                                     }
                                                     String[] names = NAME_SEPARATOR.split(name);
                                                     if (names != null && names.length > 0) {
+                                                        /**
+                                                         * 看下这个类上有没有Activate注解
+                                                         */
                                                         Activate activate = clazz.getAnnotation(Activate.class);
                                                         if (activate != null) {
+                                                            //存在，就往cachedActivates里面添加名称与注解
                                                             cachedActivates.put(names[0], activate);
                                                         }
                                                         for (String n : names) {
                                                             if (!cachedNames.containsKey(clazz)) {
+                                                                //将此类型的实例与name放入cachedNames
                                                                 cachedNames.put(clazz, n);
                                                             }
                                                             Class<?> c = extensionClasses.get(n);
                                                             if (c == null) {
+                                                                //最后往extensionClasses添加名称与class
                                                                 extensionClasses.put(n, clazz);
                                                             } else if (c != clazz) {
                                                                 throw new IllegalStateException("Duplicate extension " + type.getName() + " name " + n + " on " + c.getName() + " and " + clazz.getName());
@@ -714,16 +770,34 @@ public class ExtensionLoader<T> {
 
     private Class<?> getAdaptiveExtensionClass() {
         getExtensionClasses();
+        /**
+         * 如果通过上面的步骤可以获取到cachedAdaptiveClass直接返回，如果不行的话，就得考虑自己进行利用动态代理创建一个了
+         */
         if (cachedAdaptiveClass != null) {
             return cachedAdaptiveClass;
         }
+        /**
+         * 利用动态代理创建一个扩展类
+         */
         return cachedAdaptiveClass = createAdaptiveExtensionClass();
     }
 
     private Class<?> createAdaptiveExtensionClass() {
+        /**
+         * 创建代码的字符串形式
+         */
         String code = createAdaptiveExtensionClassCode();
+        /**
+         * 寻找类加载器
+         */
         ClassLoader classLoader = findClassLoader();
+        /**
+         * 寻找Compiler的适配器扩展类
+         */
         com.alibaba.dubbo.common.compiler.Compiler compiler = ExtensionLoader.getExtensionLoader(com.alibaba.dubbo.common.compiler.Compiler.class).getAdaptiveExtension();
+        /**
+         * 进行编译成Class的实例返回
+         */
         return compiler.compile(code, classLoader);
     }
 

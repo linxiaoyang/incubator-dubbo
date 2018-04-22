@@ -30,6 +30,9 @@ import javax.sound.midi.Receiver;
  * <a href="http://en.wikipedia.org/wiki/Client%E2%80%93server_model">Client/Server</a>
  *
  * @see com.alibaba.dubbo.remoting.Transporters
+ * <p>
+ * <p>
+ * 传输层（网路netty,mina）
  */
 @SPI("netty")
 public interface Transporter {

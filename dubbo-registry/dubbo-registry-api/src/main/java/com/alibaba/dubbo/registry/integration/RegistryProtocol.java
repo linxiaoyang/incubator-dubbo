@@ -53,7 +53,6 @@ import static com.alibaba.dubbo.common.Constants.QOS_PORT;
 
 /**
  * RegistryProtocol
- *
  */
 public class RegistryProtocol implements Protocol {
 
@@ -120,7 +119,13 @@ public class RegistryProtocol implements Protocol {
     }
 
     public void register(URL registryUrl, URL registedProviderUrl) {
+        /**
+         * 获得注册中心的注册器
+         */
         Registry registry = registryFactory.getRegistry(registryUrl);
+        /**
+         * 进行provider的注册
+         */
         registry.register(registedProviderUrl);
     }
 
@@ -128,18 +133,31 @@ public class RegistryProtocol implements Protocol {
         //export invoker
         final ExporterChangeableWrapper<T> exporter = doLocalExport(originInvoker);
 
+        /**
+         * 获取到注册中心的地址，里面包含了注册中心的方式（zk，redis）与 export 的服务的信息
+         */
         URL registryUrl = getRegistryUrl(originInvoker);
-
-        //registry provider
+        /**
+         * 根据invoker创建注册中心注册器，如果协议是zk，就是zk的client之类的操作
+         */
         final Registry registry = getRegistry(originInvoker);
+        /**
+         * 获取到真正的providerUrl
+         */
         final URL registedProviderUrl = getRegistedProviderUrl(originInvoker);
 
         //to judge to delay publish whether or not
         boolean register = registedProviderUrl.getParameter("register", true);
 
+        /**
+         * 将信息放入注册表中（本地Map）
+         */
         ProviderConsumerRegTable.registerProvider(originInvoker, registryUrl, registedProviderUrl);
 
         if (register) {
+            /**
+             * 将provider注册到注册中心
+             */
             register(registryUrl, registedProviderUrl);
             ProviderConsumerRegTable.getProviderWrapper(originInvoker).setReg(true);
         }
@@ -149,6 +167,9 @@ public class RegistryProtocol implements Protocol {
         final URL overrideSubscribeUrl = getSubscribedOverrideUrl(registedProviderUrl);
         final OverrideListener overrideSubscribeListener = new OverrideListener(overrideSubscribeUrl, originInvoker);
         overrideListeners.put(overrideSubscribeUrl, overrideSubscribeListener);
+        /**
+         *  订阅消息，数据发生改变的回调
+         */
         registry.subscribe(overrideSubscribeUrl, overrideSubscribeListener);
         //Ensure that a new exporter instance is returned every time export
         return new DestroyableExporter<T>(exporter, originInvoker, overrideSubscribeUrl, registedProviderUrl);
@@ -162,7 +183,13 @@ public class RegistryProtocol implements Protocol {
             synchronized (bounds) {
                 exporter = (ExporterChangeableWrapper<T>) bounds.get(key);
                 if (exporter == null) {
+                    /**
+                     * 原始的invoker与provider url 的结合体
+                     */
                     final Invoker<?> invokerDelegete = new InvokerDelegete<T>(originInvoker, getProviderUrl(originInvoker));
+                    /**
+                     * TODO 在这里完成本地服务的暴露的。
+                     */
                     exporter = new ExporterChangeableWrapper<T>((Exporter<T>) protocol.export(invokerDelegete), originInvoker);
                     bounds.put(key, exporter);
                 }

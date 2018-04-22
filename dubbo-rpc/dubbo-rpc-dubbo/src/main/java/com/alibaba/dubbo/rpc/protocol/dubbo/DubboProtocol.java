@@ -224,9 +224,17 @@ public class DubboProtocol extends AbstractProtocol {
     public <T> Exporter<T> export(Invoker<T> invoker) throws RpcException {
         URL url = invoker.getUrl();
 
-        // export service.
+        /**
+         * 根据URL获取唯一的serviceKey
+         */
         String key = serviceKey(url);
+        /**
+         * 根据invoker与key创建DubboExporter对象
+         */
         DubboExporter<T> exporter = new DubboExporter<T>(invoker, key, exporterMap);
+        /**
+         * 放入exporterMap中
+         */
         exporterMap.put(key, exporter);
 
         //export an stub service for dispatching event
@@ -249,14 +257,22 @@ public class DubboProtocol extends AbstractProtocol {
         return exporter;
     }
 
+    /**
+     * 开启服务器
+     * @param url
+     */
     private void openServer(URL url) {
         // find server.
         String key = url.getAddress();
         //client can export a service which's only for server to invoke
         boolean isServer = url.getParameter(Constants.IS_SERVER_KEY, true);
         if (isServer) {
+
             ExchangeServer server = serverMap.get(key);
             if (server == null) {
+                /**
+                 * 创建server
+                 */
                 serverMap.put(key, createServer(url));
             } else {
                 // server supports reset, use together with override
@@ -278,6 +294,9 @@ public class DubboProtocol extends AbstractProtocol {
         url = url.addParameter(Constants.CODEC_KEY, DubboCodec.NAME);
         ExchangeServer server;
         try {
+            /**
+             * Exchangers.bind创建一个server
+             */
             server = Exchangers.bind(url, requestHandler);
         } catch (RemotingException e) {
             throw new RpcException("Fail to start server(url: " + url + ") " + e.getMessage(), e);

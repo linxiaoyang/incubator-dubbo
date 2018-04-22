@@ -261,6 +261,9 @@ public class ServiceConfig<T> extends AbstractServiceConfig {
                 monitor = application.getMonitor();
             }
         }
+        /**
+         * dubbo 泛化调用
+         */
         if (ref instanceof GenericService) {
             interfaceClass = GenericService.class;
             if (StringUtils.isEmpty(generic)) {
@@ -268,6 +271,9 @@ public class ServiceConfig<T> extends AbstractServiceConfig {
             }
         } else {
             try {
+                /**
+                 * 利用反射根据接口名称，加载到接口的Class对象
+                 */
                 interfaceClass = Class.forName(interfaceName, true, Thread.currentThread()
                         .getContextClassLoader());
             } catch (ClassNotFoundException e) {
@@ -313,6 +319,9 @@ public class ServiceConfig<T> extends AbstractServiceConfig {
         if (path == null || path.length() == 0) {
             path = interfaceName;
         }
+        /**
+         * ! 重要 。开始暴露
+         */
         doExportUrls();
         ProviderModel providerModel = new ProviderModel(getUniqueServiceName(), this, ref);
         ApplicationModel.initProviderModel(getUniqueServiceName(), providerModel);
@@ -352,7 +361,11 @@ public class ServiceConfig<T> extends AbstractServiceConfig {
 
     @SuppressWarnings({"unchecked", "rawtypes"})
     private void doExportUrls() {
+
         List<URL> registryURLs = loadRegistries(true);
+        /**
+         * 这里的遍历是因为支持多种协议
+         */
         for (ProtocolConfig protocolConfig : protocols) {
             doExportUrlsFor1Protocol(protocolConfig, registryURLs);
         }
@@ -468,6 +481,10 @@ public class ServiceConfig<T> extends AbstractServiceConfig {
 
         String host = this.findConfigedHosts(protocolConfig, registryURLs, map);
         Integer port = this.findConfigedPorts(protocolConfig, name, map);
+
+        /**
+         * 上面所做的所有的操作都是在创建这个URL，dubbo中的信息传递主要靠URL对象
+         */
         URL url = new URL(name, host, port, (contextPath == null || contextPath.length() == 0 ? "" : contextPath + "/") + path, map);
 
         if (ExtensionLoader.getExtensionLoader(ConfiguratorFactory.class)
@@ -481,6 +498,14 @@ public class ServiceConfig<T> extends AbstractServiceConfig {
         if (!Constants.SCOPE_NONE.toString().equalsIgnoreCase(scope)) {
 
             // export to local if the config is not remote (export to remote only when config is remote)
+            /**
+             * 本地暴露
+             *
+             * 在dubbo中我们一个服务可能既是Provider,又是Consumer,因此就存在
+             * 他自己调用自己服务的情况,如果再通过网络去访问,那自然是舍近求远,
+             * 因此他是有本地暴露服务的这个设计.从这里我们就知道这个两者的区别
+             * 本地暴露是暴露在JVM中,不需要网络通信.
+             */
             if (!Constants.SCOPE_REMOTE.toString().equalsIgnoreCase(scope)) {
                 exportLocal(url);
             }
@@ -489,9 +514,15 @@ public class ServiceConfig<T> extends AbstractServiceConfig {
                 if (logger.isInfoEnabled()) {
                     logger.info("Export dubbo service " + interfaceClass.getName() + " to url " + url);
                 }
+                /**
+                 * 注册中心的URL不为空，比如说注册中心是zk,是redis,那么有相应的URL
+                 */
                 if (registryURLs != null && !registryURLs.isEmpty()) {
                     for (URL registryURL : registryURLs) {
                         url = url.addParameterIfAbsent(Constants.DYNAMIC_KEY, registryURL.getParameter(Constants.DYNAMIC_KEY));
+                        /**
+                         * 从注册中心的URL中，拼接得到监控中心的URL，监控中心所做的事情比如说接口的调用次数之类的。
+                         */
                         URL monitorUrl = loadMonitor(registryURL);
                         if (monitorUrl != null) {
                             url = url.addParameterAndEncoded(Constants.MONITOR_KEY, monitorUrl.toFullString());
@@ -499,7 +530,15 @@ public class ServiceConfig<T> extends AbstractServiceConfig {
                         if (logger.isInfoEnabled()) {
                             logger.info("Register dubbo service " + interfaceClass.getName() + " url " + url + " to registry " + registryURL);
                         }
+                        /**
+                         * 这个invoker无非就是一个动态代理。当访问interfaceClass方法的时候，动态代理将会使用ref的方法作为具体的实现类。对外形成统一的出口invoker。
+                         *
+                         * TODO 重要注意：这里是registryURL，也就是注册的协议，也就是zk，redis的协议。
+                         */
                         Invoker<?> invoker = proxyFactory.getInvoker(ref, (Class) interfaceClass, registryURL.addParameterAndEncoded(Constants.EXPORT_KEY, url.toFullString()));
+                        /**
+                         * 静态代理DelegateProviderMetaDataInvoker，将ServiceConfig也放进去
+                         */
                         DelegateProviderMetaDataInvoker wrapperInvoker = new DelegateProviderMetaDataInvoker(invoker, this);
 
                         Exporter<?> exporter = protocol.export(wrapperInvoker);
@@ -520,12 +559,21 @@ public class ServiceConfig<T> extends AbstractServiceConfig {
     @SuppressWarnings({"unchecked", "rawtypes"})
     private void exportLocal(URL url) {
         if (!Constants.LOCAL_PROTOCOL.equalsIgnoreCase(url.getProtocol())) {
+            /**
+             * 创建URL对象
+             */
             URL local = URL.valueOf(url.toFullString())
                     .setProtocol(Constants.LOCAL_PROTOCOL)
                     .setHost(LOCALHOST)
                     .setPort(0);
+            /**
+             * ThreadLocal中存放ref实现类对应的class对象
+             */
             ServiceClassHolder.getInstance().pushServiceClass(getServiceClass(ref));
             Exporter<?> exporter = protocol.export(
+                    /**
+                     * 利用带胎代理生成Invoker类的实例
+                     */
                     proxyFactory.getInvoker(ref, (Class) interfaceClass, local));
             exporters.add(exporter);
             logger.info("Export dubbo service " + interfaceClass.getName() + " to local registry");

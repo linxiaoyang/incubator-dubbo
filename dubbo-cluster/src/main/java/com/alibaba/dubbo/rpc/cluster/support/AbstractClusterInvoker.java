@@ -41,6 +41,11 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * 一般对应的是集群容错机制的实现
  * <p>
  * 常见容错机制：failover ，failsafe，failfase ，failback，forking
+ * <p>
+ * <p>
+ * Directory:找出本次集群中的全部invokers
+ * Router: 将上一步的全部invokers挑选出能正常执行的invokers
+ * LoadBalance: 将上一步的能正常的执行invokers中,根据配置的负载均衡策略,挑选出需要执行的invoker
  */
 public abstract class AbstractClusterInvoker<T> implements Invoker<T> {
 

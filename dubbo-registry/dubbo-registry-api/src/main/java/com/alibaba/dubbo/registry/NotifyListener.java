@@ -24,6 +24,8 @@ import java.util.List;
  * NotifyListener. (API, Prototype, ThreadSafe)
  *
  * @see com.alibaba.dubbo.registry.RegistryService#subscribe(URL, NotifyListener)
+ *
+ * 这个NotifyListener中的notify方法就是注册中心的回调,也就是它之所以能根据注册中心动态变化的根源所在.
  */
 public interface NotifyListener {
 

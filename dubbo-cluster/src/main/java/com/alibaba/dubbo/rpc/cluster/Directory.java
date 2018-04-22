@@ -30,7 +30,8 @@ import java.util.List;
  *
  * @see com.alibaba.dubbo.rpc.cluster.Cluster#join(Directory)
  * <p>
- * 地址录服务。找出本次集群中的全部invokers
+ * 地址录服务。找出本次集群中的全部invokers.
+ * Directory 代表多个 Invoker，可以把它看成 List<Invoker> ,但与 List 不同的是，它的值可能是动态变化的，比如注册中心推送变更
  */
 public interface Directory<T> extends Node {
 

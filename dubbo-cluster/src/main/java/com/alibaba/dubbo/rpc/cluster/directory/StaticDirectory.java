@@ -26,7 +26,9 @@ import java.util.List;
 
 /**
  * StaticDirectory
- *
+ * <p>
+ * 其实从StaticDirectory中的Static关键词来看,就知道,这个其实是不会动态变化的,
+ * 他的Invoker是通过构造函数传入
  */
 public class StaticDirectory<T> extends AbstractDirectory<T> {
 

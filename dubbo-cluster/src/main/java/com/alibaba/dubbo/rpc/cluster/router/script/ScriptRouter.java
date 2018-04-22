@@ -41,6 +41,8 @@ import java.util.concurrent.ConcurrentHashMap;
 /**
  * ScriptRouter
  *
+ * 脚本路由规则 支持 JDK 脚本引擎的所有脚本，比如：javascript, jruby, groovy 等，通过 type=javascript 参数设置脚本类型，缺省为 javascript。
+ *
  */
 public class ScriptRouter implements Router {
 

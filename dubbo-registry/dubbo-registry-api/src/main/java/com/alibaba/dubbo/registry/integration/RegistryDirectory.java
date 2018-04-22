@@ -56,6 +56,9 @@ import java.util.Set;
 /**
  * RegistryDirectory
  *
+ *
+ * 这个NotifyListener中的notify方法就是注册中心的回调,也就是它之所以能根据注册中心动态变化的根源所在.
+ *
  */
 public class RegistryDirectory<T> extends AbstractDirectory<T> implements NotifyListener {
 
@@ -179,6 +182,10 @@ public class RegistryDirectory<T> extends AbstractDirectory<T> implements Notify
         }
     }
 
+    /**
+     * 注册中心的变动回调进行触发
+     * @param urls The list of registered information , is always not empty. The meaning is the same as the return value of {@link com.alibaba.dubbo.registry.RegistryService#lookup(URL)}.
+     */
     public synchronized void notify(List<URL> urls) {
         List<URL> invokerUrls = new ArrayList<URL>();
         List<URL> routerUrls = new ArrayList<URL>();
@@ -229,7 +236,6 @@ public class RegistryDirectory<T> extends AbstractDirectory<T> implements Notify
      *
      * @param invokerUrls this parameter can't be null
      */
-    // TODO: 2017/8/31 FIXME The thread pool should be used to refresh the address, otherwise the task may be accumulated.
     private void refreshInvoker(List<URL> invokerUrls) {
         if (invokerUrls != null && invokerUrls.size() == 1 && invokerUrls.get(0) != null
                 && Constants.EMPTY_PROTOCOL.equals(invokerUrls.get(0).getProtocol())) {
@@ -248,6 +254,9 @@ public class RegistryDirectory<T> extends AbstractDirectory<T> implements Notify
             if (invokerUrls.isEmpty()) {
                 return;
             }
+            /**
+             * 将URL转化成Map
+             */
             Map<String, Invoker<T>> newUrlInvokerMap = toInvokers(invokerUrls);// Translate url list to Invoker map
             Map<String, List<Invoker<T>>> newMethodInvokerMap = toMethodInvokers(newUrlInvokerMap); // Change method name to map Invoker Map
             // state change
@@ -566,6 +575,11 @@ public class RegistryDirectory<T> extends AbstractDirectory<T> implements Notify
         }
     }
 
+    /**
+     * 根据invocation（客户端封装的请求信息）找到可以提供此服务的所有的providers的list
+     * @param invocation
+     * @return
+     */
     public List<Invoker<T>> doList(Invocation invocation) {
         if (forbidden) {
             // 1. No service provider 2. Service providers are disabled
@@ -573,6 +587,10 @@ public class RegistryDirectory<T> extends AbstractDirectory<T> implements Notify
                 "No provider available from registry " + getUrl().getAddress() + " for service " + getConsumerUrl().getServiceKey() + " on consumer " +  NetUtils.getLocalHost()
                         + " use dubbo version " + Version.getVersion() + ", please check status of providers(disabled, not registered or in blacklist).");
         }
+        /**
+         * 从下面的内容可以看出，具体的invoker的获取是从methodInvokerMap这个map中，当然，这是一个get操作，写入操作是在
+         * @see RegistryDirectory#notify(java.util.List)
+         */
         List<Invoker<T>> invokers = null;
         Map<String, List<Invoker<T>>> localMethodInvokerMap = this.methodInvokerMap; // local reference
         if (localMethodInvokerMap != null && localMethodInvokerMap.size() > 0) {

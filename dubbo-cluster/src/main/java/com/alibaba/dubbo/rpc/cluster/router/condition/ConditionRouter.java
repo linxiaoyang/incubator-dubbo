@@ -41,6 +41,13 @@ import java.util.regex.Pattern;
 /**
  * ConditionRouter
  *
+ * 条件路由主要就是根据dubbo管理控制台配置的路由规则来过滤相关的invoker,
+ * 当我们对路由规则点击启用的时候,就会触发RegistryDirectory类的notify方法.
+ *
+ *
+ * 我们说一个比较具体的例子。集群中有两个服务提供者192.168.100.1与192.168.100.2 如果想灰度发布192.168.100.1 就需要在控制台禁用掉这台。此时发出notify的消息。notify的消息的设计有两种思路，第一种相当于让其下线，notify的url相当于只有100.2。这样就不会选到100.1.
+ * 另外一种是还是两条数据100.2与100.1，只不过通过某种规则后选不到100.1，这就是ConditionRouter。
+ *
  */
 public class ConditionRouter implements Router, Comparable<Router> {
 

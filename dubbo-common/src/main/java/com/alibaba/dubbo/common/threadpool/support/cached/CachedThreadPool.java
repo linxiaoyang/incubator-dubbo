@@ -1,12 +1,11 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Copyright 1999-2011 Alibaba Group.
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -16,23 +15,23 @@
  */
 package com.alibaba.dubbo.common.threadpool.support.cached;
 
-import com.alibaba.dubbo.common.Constants;
-import com.alibaba.dubbo.common.URL;
-import com.alibaba.dubbo.common.threadpool.ThreadPool;
-import com.alibaba.dubbo.common.threadpool.support.AbortPolicyWithReport;
-import com.alibaba.dubbo.common.utils.NamedThreadFactory;
-
 import java.util.concurrent.Executor;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
+import com.alibaba.dubbo.common.Constants;
+import com.alibaba.dubbo.common.URL;
+import com.alibaba.dubbo.common.threadpool.ThreadPool;
+import com.alibaba.dubbo.common.threadpool.support.AbortPolicyWithReport;
+import com.alibaba.dubbo.common.utils.NamedThreadFactory;
+
 /**
- * This thread pool is self-tuned. Thread will be recycled after idle for one minute, and new thread will be created for
- * the upcoming request.
+ * 此线程池可伸缩，线程空闲一分钟后回收，新请求重新创建线程，来源于：<code>Executors.newCachedThreadPool()</code>
  *
  * @see java.util.concurrent.Executors#newCachedThreadPool()
+ * @author william.liangf
  */
 public class CachedThreadPool implements ThreadPool {
 

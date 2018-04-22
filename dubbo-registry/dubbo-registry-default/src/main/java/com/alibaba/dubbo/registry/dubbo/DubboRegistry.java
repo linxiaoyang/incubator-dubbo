@@ -1,12 +1,11 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Copyright 1999-2011 Alibaba Group.
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -15,6 +14,13 @@
  * limitations under the License.
  */
 package com.alibaba.dubbo.registry.dubbo;
+
+import java.util.List;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.ReentrantLock;
 
 import com.alibaba.dubbo.common.Constants;
 import com.alibaba.dubbo.common.URL;
@@ -28,31 +34,25 @@ import com.alibaba.dubbo.registry.RegistryService;
 import com.alibaba.dubbo.registry.support.FailbackRegistry;
 import com.alibaba.dubbo.rpc.Invoker;
 
-import java.util.List;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.locks.ReentrantLock;
-
 /**
  * DubboRegistry
  *
+ * @author william.liangf
  */
 public class DubboRegistry extends FailbackRegistry {
 
     private final static Logger logger = LoggerFactory.getLogger(DubboRegistry.class);
 
-    // Reconnecting detection cycle: 3 seconds (unit:millisecond)
+    // 重连检测周期3秒(单位毫秒)
     private static final int RECONNECT_PERIOD_DEFAULT = 3 * 1000;
 
-    // Scheduled executor service
+    // 定时任务执行器
     private final ScheduledExecutorService scheduledExecutorService = Executors.newScheduledThreadPool(1, new NamedThreadFactory("DubboRegistryReconnectTimer", true));
 
-    // Reconnection timer, regular check connection is available. If unavailable, unlimited reconnection.
+    // 重连定时器，定时检查连接是否可用，不可用时，无限次重连
     private final ScheduledFuture<?> reconnectFuture;
 
-    // The lock for client acquisition process, lock the creation process of the client instance to prevent repeated clients
+    // 客户端获取过程锁，锁定客户端实例的创建过程，防止重复的客户端
     private final ReentrantLock clientLock = new ReentrantLock();
 
     private final Invoker<RegistryService> registryInvoker;
@@ -63,14 +63,14 @@ public class DubboRegistry extends FailbackRegistry {
         super(registryInvoker.getUrl());
         this.registryInvoker = registryInvoker;
         this.registryService = registryService;
-        // Start reconnection timer
+        // 启动重连定时器
         int reconnectPeriod = registryInvoker.getUrl().getParameter(Constants.REGISTRY_RECONNECT_PERIOD_KEY, RECONNECT_PERIOD_DEFAULT);
         reconnectFuture = scheduledExecutorService.scheduleWithFixedDelay(new Runnable() {
             public void run() {
-                // Check and connect to the registry
+                // 检测并连接注册中心
                 try {
                     connect();
-                } catch (Throwable t) { // Defensive fault tolerance
+                } catch (Throwable t) { // 防御性容错
                     logger.error("Unexpected error occur at reconnect, cause: " + t.getMessage(), t);
                 }
             }
@@ -79,7 +79,7 @@ public class DubboRegistry extends FailbackRegistry {
 
     protected final void connect() {
         try {
-            // Check whether or not it is connected
+            // 检查是否已连接
             if (isAvailable()) {
                 return;
             }
@@ -88,7 +88,7 @@ public class DubboRegistry extends FailbackRegistry {
             }
             clientLock.lock();
             try {
-                // Double check whether or not it is connected
+                // 双重检查是否已连接
                 if (isAvailable()) {
                     return;
                 }
@@ -96,7 +96,7 @@ public class DubboRegistry extends FailbackRegistry {
             } finally {
                 clientLock.unlock();
             }
-        } catch (Throwable t) { // Ignore all the exceptions and wait for the next retry
+        } catch (Throwable t) { // 忽略所有异常，等待下次重试
             if (getUrl().getParameter(Constants.CHECK_KEY, true)) {
                 if (t instanceof RuntimeException) {
                     throw (RuntimeException) t;
@@ -116,8 +116,8 @@ public class DubboRegistry extends FailbackRegistry {
     public void destroy() {
         super.destroy();
         try {
-            // Cancel the reconnection timer
-            if (!reconnectFuture.isCancelled()) {
+            // 取消重连定时器
+            if (! reconnectFuture.isCancelled()) {
                 reconnectFuture.cancel(true);
             }
         } catch (Throwable t) {

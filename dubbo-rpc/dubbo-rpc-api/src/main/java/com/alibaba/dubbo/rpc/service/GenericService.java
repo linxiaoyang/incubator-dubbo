@@ -1,12 +1,11 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Copyright 1999-2011 Alibaba Group.
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -17,21 +16,21 @@
 package com.alibaba.dubbo.rpc.service;
 
 /**
- * Generic service interface
+ * 通用服务接口
  *
+ * @author william.liangf
  * @export
  */
 public interface GenericService {
 
     /**
-     * Generic invocation
+     * 泛化调用
      *
-     * @param method         Method name, e.g. findPerson. If there are overridden methods, parameter info is
-     *                       required, e.g. findPerson(java.lang.String)
-     * @param parameterTypes Parameter types
-     * @param args           Arguments
-     * @return invocation return value
-     * @throws Throwable potential exception thrown from the invocation
+     * @param method 方法名，如：findPerson，如果有重载方法，需带上参数列表，如：findPerson(java.lang.String)
+     * @param parameterTypes 参数类型
+     * @param args 参数列表
+     * @return 返回值
+     * @throws Throwable 方法抛出的异常
      */
     Object $invoke(String method, String[] parameterTypes, Object[] args) throws GenericException;
 

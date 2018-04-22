@@ -1,12 +1,11 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Copyright 1999-2011 Alibaba Group.
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -16,32 +15,33 @@
  */
 package com.alibaba.dubbo.common;
 
-import com.alibaba.dubbo.common.extension.ExtensionLoader;
-import com.alibaba.dubbo.common.logger.Logger;
-import com.alibaba.dubbo.common.logger.LoggerFactory;
-import com.alibaba.dubbo.common.utils.StringUtils;
-
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
+import com.alibaba.dubbo.common.extension.ExtensionLoader;
+import com.alibaba.dubbo.common.logger.Logger;
+import com.alibaba.dubbo.common.logger.LoggerFactory;
+import com.alibaba.dubbo.common.utils.StringUtils;
+
 /**
- * Parameters for backward compatibility for version prior to 2.0.5
- *
+ * 兼容2.0.5之前版本
  * @deprecated
+ * @author tony.chenl
  */
 @Deprecated
 public class Parameters {
-    protected static final Logger logger = LoggerFactory.getLogger(Parameters.class);
     private final Map<String, String> parameters;
+
+    protected static final Logger logger = LoggerFactory.getLogger(Parameters.class);
 
     public Parameters(String... pairs) {
         this(toMap(pairs));
     }
 
-    public Parameters(Map<String, String> parameters) {
+    public Parameters(Map<String, String> parameters){
         this.parameters = Collections.unmodifiableMap(parameters != null ? new HashMap<String, String>(parameters) : new HashMap<String, String>(0));
     }
 
@@ -56,10 +56,6 @@ public class Parameters {
             }
         }
         return parameters;
-    }
-
-    public static Parameters parseParameters(String query) {
-        return new Parameters(StringUtils.parseQueryString(query));
     }
 
     public Map<String, String> getParameters() {
@@ -245,6 +241,10 @@ public class Parameters {
     public boolean hasMethodParamter(String method, String key) {
         String value = getMethodParameter(method, key);
         return value != null && value.length() > 0;
+    }
+
+    public static Parameters parseParameters(String query) {
+        return new Parameters(StringUtils.parseQueryString(query));
     }
 
     public boolean equals(Object o) {

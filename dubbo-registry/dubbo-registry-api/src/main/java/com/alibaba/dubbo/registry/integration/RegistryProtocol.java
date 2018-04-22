@@ -162,8 +162,10 @@ public class RegistryProtocol implements Protocol {
             ProviderConsumerRegTable.getProviderWrapper(originInvoker).setReg(true);
         }
 
-        // Subscribe the override data
-        // FIXME When the provider subscribes, it will affect the scene : a certain JVM exposes the service and call the same service. Because the subscribed is cached key with the name of the service, it causes the subscription information to cover.
+        /**
+         * 订阅override数据
+         * FIXME 提供者订阅时，会影响同一JVM即暴露服务，又引用同一服务的的场景，因为subscribed以服务名为缓存的key，导致订阅信息覆盖。
+         */
         final URL overrideSubscribeUrl = getSubscribedOverrideUrl(registedProviderUrl);
         final OverrideListener overrideSubscribeListener = new OverrideListener(overrideSubscribeUrl, originInvoker);
         overrideListeners.put(overrideSubscribeUrl, overrideSubscribeListener);
@@ -171,7 +173,9 @@ public class RegistryProtocol implements Protocol {
          *  订阅消息，数据发生改变的回调
          */
         registry.subscribe(overrideSubscribeUrl, overrideSubscribeListener);
-        //Ensure that a new exporter instance is returned every time export
+        /**
+         * 保证每次export都返回一个新的exporter实例
+         */
         return new DestroyableExporter<T>(exporter, originInvoker, overrideSubscribeUrl, registedProviderUrl);
     }
 
@@ -199,7 +203,7 @@ public class RegistryProtocol implements Protocol {
     }
 
     /**
-     * Reexport the invoker of the modified url
+     * 对修改了url的invoker重新export
      *
      * @param originInvoker
      * @param newInvokerUrl
@@ -217,7 +221,7 @@ public class RegistryProtocol implements Protocol {
     }
 
     /**
-     * Get an instance of registry based on the address of invoker
+     * 根据invoker的地址获取registry实例
      *
      * @param originInvoker
      * @return
@@ -238,7 +242,7 @@ public class RegistryProtocol implements Protocol {
 
 
     /**
-     * Return the url that is registered to the registry and filter the url parameter once
+     * 返回注册到注册中心的URL，对URL参数进行一次过滤
      *
      * @param originInvoker
      * @return
@@ -263,7 +267,7 @@ public class RegistryProtocol implements Protocol {
     }
 
     /**
-     * Get the address of the providerUrl through the url of the invoker
+     * 通过invoker的url 获取 providerUrl的地址
      *
      * @param origininvoker
      * @return
@@ -279,7 +283,7 @@ public class RegistryProtocol implements Protocol {
     }
 
     /**
-     * Get the key cached in bounds by invoker
+     * 获取invoker在bounds中缓存的key
      *
      * @param originInvoker
      * @return
@@ -473,7 +477,7 @@ public class RegistryProtocol implements Protocol {
     }
 
     /**
-     * exporter proxy, establish the corresponding relationship between the returned exporter and the exporter exported by the protocol, and can modify the relationship at the time of override.
+     * exporter代理,建立返回的exporter与protocol export出的exporter的对应关系，在override时可以进行关系修改.
      *
      * @param <T>
      */

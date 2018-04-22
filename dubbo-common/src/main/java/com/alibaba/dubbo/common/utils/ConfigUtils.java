@@ -62,17 +62,17 @@ public class ConfigUtils {
     }
 
     /**
-     * Insert default extension into extension list.
+     * 扩展点列表中插入缺省扩展点。
      * <p>
-     * Extension list support<ul>
-     * <li>Special value <code><strong>default</strong></code>, means the location for default extensions.
-     * <li>Special symbol<code><strong>-</strong></code>, means remove. <code>-foo1</code> will remove default extension 'foo'; <code>-default</code> will remove all default extensions.
+     * 扩展点列表支持<ul>
+     * <li>特殊值<code><strong>default</strong></code>，表示缺省扩展点插入的位置
+     * <li>特殊符号<code><strong>-</strong></code>，表示剔除。 <code>-foo1</code>，剔除添加缺省扩展点foo1。<code>-default</code>，剔除添加所有缺省扩展点。
      * </ul>
      *
-     * @param type Extension type
-     * @param cfg  Extension name list
-     * @param def  Default extension list
-     * @return result extension list
+     * @param type 扩展点类型
+     * @param cfg 扩展点名列表
+     * @param def 缺省的扩展点的列表
+     * @return 完成缺省的扩展点列表插入后的列表
      */
     public static List<String> mergeValues(Class<?> type, String cfg, List<String> def) {
         List<String> defaults = new ArrayList<String>();

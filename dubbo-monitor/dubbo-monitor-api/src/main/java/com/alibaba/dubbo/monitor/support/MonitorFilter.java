@@ -1,12 +1,11 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Copyright 1999-2011 Alibaba Group.
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -15,6 +14,10 @@
  * limitations under the License.
  */
 package com.alibaba.dubbo.monitor.support;
+
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import com.alibaba.dubbo.common.Constants;
 import com.alibaba.dubbo.common.URL;
@@ -31,14 +34,13 @@ import com.alibaba.dubbo.rpc.Invoker;
 import com.alibaba.dubbo.rpc.Result;
 import com.alibaba.dubbo.rpc.RpcContext;
 import com.alibaba.dubbo.rpc.RpcException;
+import com.alibaba.dubbo.rpc.RpcInvocation;
 import com.alibaba.dubbo.rpc.support.RpcUtils;
-
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * MonitorFilter. (SPI, Singleton, ThreadSafe)
+ *
+ * @author william.liangf
  */
 @Activate(group = {Constants.PROVIDER, Constants.CONSUMER})
 public class MonitorFilter implements Filter {
@@ -53,55 +55,52 @@ public class MonitorFilter implements Filter {
         this.monitorFactory = monitorFactory;
     }
 
-    // intercepting invocation
+    // 调用过程拦截
     public Result invoke(Invoker<?> invoker, Invocation invocation) throws RpcException {
         if (invoker.getUrl().hasParameter(Constants.MONITOR_KEY)) {
-            RpcContext context = RpcContext.getContext(); // provider must fetch context before invoke() gets called
-            String remoteHost = context.getRemoteHost();
-            long start = System.currentTimeMillis(); // record start timestamp
-            getConcurrent(invoker, invocation).incrementAndGet(); // count up
+            RpcContext context = RpcContext.getContext(); // 提供方必须在invoke()之前获取context信息
+            long start = System.currentTimeMillis(); // 记录起始时间戮
+            getConcurrent(invoker, invocation).incrementAndGet(); // 并发计数
             try {
-                Result result = invoker.invoke(invocation); // proceed invocation chain
-                collect(invoker, invocation, result, remoteHost, start, false);
+                Result result = invoker.invoke(invocation); // 让调用链往下执行
+                collect(invoker, invocation, result, context, start, false);
                 return result;
             } catch (RpcException e) {
-                collect(invoker, invocation, null, remoteHost, start, true);
+                collect(invoker, invocation, null, context, start, true);
                 throw e;
             } finally {
-                getConcurrent(invoker, invocation).decrementAndGet(); // count down
+                getConcurrent(invoker, invocation).decrementAndGet(); // 并发计数
             }
         } else {
             return invoker.invoke(invocation);
         }
     }
 
-    // collect info
-    private void collect(Invoker<?> invoker, Invocation invocation, Result result, String remoteHost, long start, boolean error) {
+    // 信息采集
+    private void collect(Invoker<?> invoker, Invocation invocation, Result result, RpcContext context, long start, boolean error) {
         try {
-            // ---- service statistics ----
-            long elapsed = System.currentTimeMillis() - start; // invocation cost
-            int concurrent = getConcurrent(invoker, invocation).get(); // current concurrent count
+            // ---- 服务信息获取 ----
+            long elapsed = System.currentTimeMillis() - start; // 计算调用耗时
+            int concurrent = getConcurrent(invoker, invocation).get(); // 当前并发数
             String application = invoker.getUrl().getParameter(Constants.APPLICATION_KEY);
-            String service = invoker.getInterface().getName(); // service name
-            String method = RpcUtils.getMethodName(invocation); // method name
+            String service = invoker.getInterface().getName(); // 获取服务名称
+            String method = RpcUtils.getMethodName(invocation); // 获取方法名
             URL url = invoker.getUrl().getUrlParameter(Constants.MONITOR_KEY);
             Monitor monitor = monitorFactory.getMonitor(url);
-            if (monitor == null) {
-                return;
-            }
             int localPort;
             String remoteKey;
             String remoteValue;
             if (Constants.CONSUMER_SIDE.equals(invoker.getUrl().getParameter(Constants.SIDE_KEY))) {
-                // ---- for service consumer ----
+                // ---- 服务消费方监控 ----
+                context = RpcContext.getContext(); // 消费方必须在invoke()之后获取context信息
                 localPort = 0;
                 remoteKey = MonitorService.PROVIDER;
                 remoteValue = invoker.getUrl().getAddress();
             } else {
-                // ---- for service provider ----
+                // ---- 服务提供方监控 ----
                 localPort = invoker.getUrl().getPort();
                 remoteKey = MonitorService.CONSUMER;
-                remoteValue = remoteHost;
+                remoteValue = context.getRemoteHost();
             }
             String input = "", output = "";
             if (invocation.getAttachment(Constants.INPUT_KEY) != null) {
@@ -127,7 +126,7 @@ public class MonitorFilter implements Filter {
         }
     }
 
-    // concurrent counter
+    // 获取并发计数器
     private AtomicInteger getConcurrent(Invoker<?> invoker, Invocation invocation) {
         String key = invoker.getInterface().getName() + "." + invocation.getMethodName();
         AtomicInteger concurrent = concurrents.get(key);

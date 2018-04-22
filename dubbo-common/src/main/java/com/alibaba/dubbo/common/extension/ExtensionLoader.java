@@ -44,11 +44,11 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.regex.Pattern;
 
 /**
- * Load dubbo extensions
+ * Dubbo使用的扩展点获取。<p>
  * <ul>
- * <li>auto inject dependency extension </li>
- * <li>auto wrap extension in wrapper </li>
- * <li>default extension is an adaptive instance</li>
+ * <li>自动注入关联扩展点。</li>
+ * <li>自动Wrap上扩展点的Wrap类。</li>
+ * <li>缺省获得的的扩展点是一个Adaptive Instance。
  * </ul>
  *
  * @see <a href="http://java.sun.com/j2se/1.5.0/docs/guide/jar/jar.html#Service%20Provider">Service Provider in Java 5</a>
@@ -319,10 +319,9 @@ public class ExtensionLoader<T> {
     }
 
     /**
-     * Get extension's instance. Return <code>null</code> if extension is not found or is not initialized. Pls. note
-     * that this method will not trigger extension load.
-     * <p>
-     * In order to trigger extension load, call {@link #getExtension(String)} instead.
+     * 返回扩展点实例，如果没有指定的扩展点或是还没加载（即实例化）则返回<code>null</code>。注意：此方法不会触发扩展点的加载。
+     * <p />
+     * 一般应该调用{@link #getExtension(String)}方法获得扩展，这个方法会触发扩展点加载。
      *
      * @see #getExtension(String)
      */
@@ -339,9 +338,9 @@ public class ExtensionLoader<T> {
     }
 
     /**
-     * Return the list of extensions which are already loaded.
-     * <p>
-     * Usually {@link #getSupportedExtensions()} should be called in order to get all extensions.
+     * 返回已经加载的扩展点的名字。
+     * <p />
+     * 一般应该调用{@link #getSupportedExtensions()}方法获得扩展，这个方法会返回所有的扩展点。
      *
      * @see #getSupportedExtensions()
      */
@@ -350,8 +349,7 @@ public class ExtensionLoader<T> {
     }
 
     /**
-     * Find the extension with the given name. If the specified name is not found, then {@link IllegalStateException}
-     * will be thrown.
+     * 返回指定名字的扩展。如果指定名字的扩展不存在，则抛异常 {@link IllegalStateException}.
      */
     @SuppressWarnings("unchecked")
     public T getExtension(String name) {
@@ -379,7 +377,7 @@ public class ExtensionLoader<T> {
     }
 
     /**
-     * Return default extension, return <code>null</code> if it's not configured.
+     * 返回缺省的扩展，如果没有设置则返回<code>null</code>。
      */
     public T getDefaultExtension() {
         getExtensionClasses();
@@ -407,7 +405,7 @@ public class ExtensionLoader<T> {
     }
 
     /**
-     * Return default extension name, return <code>null</code> if not configured.
+     * 返回缺省的扩展点名，如果没有设置缺省则返回<code>null</code>。
      */
     public String getDefaultExtensionName() {
         getExtensionClasses();
@@ -415,11 +413,11 @@ public class ExtensionLoader<T> {
     }
 
     /**
-     * Register new extension via API
+     * 编程方式添加新扩展点。
      *
      * @param name  extension name
      * @param clazz extension class
-     * @throws IllegalStateException when extension with the same name has already been registered.
+     * @throws IllegalStateException 要添加扩展点名已经存在
      */
     public void addExtension(String name, Class<?> clazz) {
         getExtensionClasses(); // load classes
@@ -454,7 +452,7 @@ public class ExtensionLoader<T> {
     }
 
     /**
-     * Replace the existing extension via API
+     * 编程方式添加替换已有扩展点。
      *
      * @param name  extension name
      * @param clazz extension class

@@ -1,12 +1,11 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Copyright 1999-2011 Alibaba Group.
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -15,14 +14,6 @@
  * limitations under the License.
  */
 package com.alibaba.dubbo.monitor.dubbo;
-
-import com.alibaba.dubbo.common.URL;
-import com.alibaba.dubbo.common.logger.Logger;
-import com.alibaba.dubbo.common.logger.LoggerFactory;
-import com.alibaba.dubbo.common.utils.NamedThreadFactory;
-import com.alibaba.dubbo.monitor.Monitor;
-import com.alibaba.dubbo.monitor.MonitorService;
-import com.alibaba.dubbo.rpc.Invoker;
 
 import java.util.List;
 import java.util.Map;
@@ -34,8 +25,18 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
+import com.alibaba.dubbo.common.URL;
+import com.alibaba.dubbo.common.logger.Logger;
+import com.alibaba.dubbo.common.logger.LoggerFactory;
+import com.alibaba.dubbo.common.utils.NamedThreadFactory;
+import com.alibaba.dubbo.monitor.Monitor;
+import com.alibaba.dubbo.monitor.MonitorService;
+import com.alibaba.dubbo.rpc.Invoker;
+
 /**
  * DubboMonitor
+ *
+ * @author william.liangf
  */
 public class DubboMonitor implements Monitor {
 
@@ -43,8 +44,10 @@ public class DubboMonitor implements Monitor {
 
     private static final int LENGTH = 10;
 
+    // 定时任务执行器
     private final ScheduledExecutorService scheduledExecutorService = Executors.newScheduledThreadPool(3, new NamedThreadFactory("DubboMonitorSendTimer", true));
 
+    // 统计信息收集定时器
     private final ScheduledFuture<?> sendFuture;
 
     private final Invoker<MonitorService> monitorInvoker;
@@ -59,13 +62,13 @@ public class DubboMonitor implements Monitor {
         this.monitorInvoker = monitorInvoker;
         this.monitorService = monitorService;
         this.monitorInterval = monitorInvoker.getUrl().getPositiveParameter("interval", 60000);
-        // collect timer for collecting statistics data
+        // 启动统计信息收集定时器
         sendFuture = scheduledExecutorService.scheduleWithFixedDelay(new Runnable() {
             public void run() {
-                // collect data
+                // 收集统计信息
                 try {
                     send();
-                } catch (Throwable t) {
+                } catch (Throwable t) { // 防御性容错
                     logger.error("Unexpected error occur at send statistic, cause: " + t.getMessage(), t);
                 }
             }
@@ -78,7 +81,7 @@ public class DubboMonitor implements Monitor {
         }
         String timestamp = String.valueOf(System.currentTimeMillis());
         for (Map.Entry<Statistics, AtomicReference<long[]>> entry : statisticsMap.entrySet()) {
-            // get statistics data
+            // 获取已统计数据
             Statistics statistics = entry.getKey();
             AtomicReference<long[]> reference = entry.getValue();
             long[] numbers = reference.get();
@@ -93,7 +96,7 @@ public class DubboMonitor implements Monitor {
             long maxElapsed = numbers[8];
             long maxConcurrent = numbers[9];
 
-            // send statistics data
+            // 发送汇总信息
             URL url = statistics.getUrl()
                     .addParameters(MonitorService.TIMESTAMP, timestamp,
                             MonitorService.SUCCESS, String.valueOf(success),
@@ -109,7 +112,7 @@ public class DubboMonitor implements Monitor {
                     );
             monitorService.collect(url);
 
-            // reset
+            // 减掉已统计数据
             long[] current;
             long[] update = new long[LENGTH];
             do {
@@ -129,26 +132,26 @@ public class DubboMonitor implements Monitor {
                     update[4] = current[4] - elapsed;
                     update[5] = current[5] - concurrent;
                 }
-            } while (!reference.compareAndSet(current, update));
+            } while (! reference.compareAndSet(current, update));
         }
     }
 
     public void collect(URL url) {
-        // data to collect from url
+        // 读写统计变量
         int success = url.getParameter(MonitorService.SUCCESS, 0);
         int failure = url.getParameter(MonitorService.FAILURE, 0);
         int input = url.getParameter(MonitorService.INPUT, 0);
         int output = url.getParameter(MonitorService.OUTPUT, 0);
         int elapsed = url.getParameter(MonitorService.ELAPSED, 0);
         int concurrent = url.getParameter(MonitorService.CONCURRENT, 0);
-        // init atomic reference
+        // 初始化原子引用
         Statistics statistics = new Statistics(url);
         AtomicReference<long[]> reference = statisticsMap.get(statistics);
         if (reference == null) {
             statisticsMap.putIfAbsent(statistics, new AtomicReference<long[]>());
             reference = statisticsMap.get(statistics);
         }
-        // use CompareAndSet to sum
+        // CompareAndSet并发加入统计数据
         long[] current;
         long[] update = new long[LENGTH];
         do {
@@ -176,7 +179,7 @@ public class DubboMonitor implements Monitor {
                 update[8] = current[8] > elapsed ? current[8] : elapsed;
                 update[9] = current[9] > concurrent ? current[9] : concurrent;
             }
-        } while (!reference.compareAndSet(current, update));
+        } while (! reference.compareAndSet(current, update));
     }
 
     public List<URL> lookup(URL query) {

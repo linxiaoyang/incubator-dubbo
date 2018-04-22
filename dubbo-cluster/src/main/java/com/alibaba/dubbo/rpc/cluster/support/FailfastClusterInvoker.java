@@ -31,6 +31,8 @@ import java.util.List;
  * Execute exactly once, which means this policy will throw an exception immediately in case of an invocation error.
  * Usually used for non-idempotent write operations
  *
+ * Failfast  快速失败。只发起一次调用，失败立即报错,通常用于非幂等性的写操作。 如果有机器正在重启，可能会出现调用失败 。
+ *
  * <a href="http://en.wikipedia.org/wiki/Fail-fast">Fail-fast</a>
  *
  */

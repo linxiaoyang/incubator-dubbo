@@ -37,7 +37,10 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * AbstractClusterInvoker
- *
+ * <p>
+ * 一般对应的是集群容错机制的实现
+ * <p>
+ * 常见容错机制：failover ，failsafe，failfase ，failback，forking
  */
 public abstract class AbstractClusterInvoker<T> implements Invoker<T> {
 
@@ -88,16 +91,16 @@ public abstract class AbstractClusterInvoker<T> implements Invoker<T> {
 
     /**
      * Select a invoker using loadbalance policy.</br>
-     * a)Firstly, select an invoker using loadbalance. If this invoker is in previously selected list, or, 
+     * a)Firstly, select an invoker using loadbalance. If this invoker is in previously selected list, or,
      * if this invoker is unavailable, then continue step b (reselect), otherwise return the first selected invoker</br>
      * b)Reslection, the validation rule for reselection: selected > available. This rule guarantees that
-     * the selected invoker has the minimum chance to be one in the previously selected list, and also 
+     * the selected invoker has the minimum chance to be one in the previously selected list, and also
      * guarantees this invoker is available.
      *
      * @param loadbalance load balance policy
      * @param invocation
-     * @param invokers invoker candidates
-     * @param selected  exclude selected invokers or not
+     * @param invokers    invoker candidates
+     * @param selected    exclude selected invokers or not
      * @return
      * @throws RpcException
      */
@@ -224,8 +227,14 @@ public abstract class AbstractClusterInvoker<T> implements Invoker<T> {
     public Result invoke(final Invocation invocation) throws RpcException {
         checkWhetherDestroyed();
         LoadBalance loadbalance = null;
+        /**
+         * 挑选出可以参与到执行的invoker
+         */
         List<Invoker<T>> invokers = list(invocation);
         if (invokers != null && !invokers.isEmpty()) {
+            /**
+             * 挑选负载均衡的算法
+             */
             loadbalance = ExtensionLoader.getExtensionLoader(LoadBalance.class).getExtension(invokers.get(0).getUrl()
                     .getMethodParameter(invocation.getMethodName(), Constants.LOADBALANCE_KEY, Constants.DEFAULT_LOADBALANCE));
         }

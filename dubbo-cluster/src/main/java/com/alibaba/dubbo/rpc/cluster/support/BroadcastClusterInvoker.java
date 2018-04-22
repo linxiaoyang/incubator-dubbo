@@ -31,6 +31,8 @@ import java.util.List;
 /**
  * BroadcastClusterInvoker
  *
+ * Broadcast。广播调用，所有提供逐个调用，任意一台报错则报错。通常用于更新提供方本地状态 速度慢，任意一台报错则报错 。
+ *
  */
 public class BroadcastClusterInvoker<T> extends AbstractClusterInvoker<T> {
 

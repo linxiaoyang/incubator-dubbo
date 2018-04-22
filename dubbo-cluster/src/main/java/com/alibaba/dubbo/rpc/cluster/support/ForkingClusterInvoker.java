@@ -38,6 +38,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 /**
  * Invoke a specific number of invokers concurrently, usually used for demanding real-time operations, but need to waste more service resources.
  *
+ * Forking  并行调用多个服务器。只要一个成功即返回，通常用于实时性要求较高的读操作。 需要浪费更多服务资源   。
+ *
  * <a href="http://en.wikipedia.org/wiki/Fork_(topology)">Fork</a>
  *
  */

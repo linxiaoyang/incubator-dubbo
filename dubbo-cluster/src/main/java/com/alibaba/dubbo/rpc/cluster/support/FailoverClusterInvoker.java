@@ -37,6 +37,8 @@ import java.util.Set;
 /**
  * When invoke fails, log the initial error and retry other invokers (retry n times, which means at most n different invokers will be invoked)
  * Note that retry causes latency.
+ *
+ * Failover 失败自动切换。当出现失败，重试其它服务器，通常用于读操作（推荐使用）。 重试会带来更长延迟。
  * <p>
  * <a href="http://en.wikipedia.org/wiki/Failover">Failover</a>
  *

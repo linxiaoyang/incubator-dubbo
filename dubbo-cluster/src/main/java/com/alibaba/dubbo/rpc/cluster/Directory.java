@@ -29,6 +29,8 @@ import java.util.List;
  * <a href="http://en.wikipedia.org/wiki/Directory_service">Directory Service</a>
  *
  * @see com.alibaba.dubbo.rpc.cluster.Cluster#join(Directory)
+ * <p>
+ * 地址录服务。找出本次集群中的全部invokers
  */
 public interface Directory<T> extends Node {
 

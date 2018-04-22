@@ -70,12 +70,19 @@ public abstract class AbstractDirectory<T> implements Directory<T> {
         if (destroyed) {
             throw new RpcException("Directory already destroyed .url: " + getUrl());
         }
+        /**
+         * 根据传入的invocation获取到所有可以使用的Invoker
+         */
         List<Invoker<T>> invokers = doList(invocation);
         List<Router> localRouters = this.routers; // local reference
         if (localRouters != null && !localRouters.isEmpty()) {
             for (Router router : localRouters) {
                 try {
                     if (router.getUrl() == null || router.getUrl().getParameter(Constants.RUNTIME_KEY, false)) {
+                        /**
+                         * 挑选出真正可以执行的，因为router分为两种，第一种是条件路由，所有是根据条件挑选invoker,
+                         * 另外一种是脚本路由，暂时还没看
+                         */
                         invokers = router.route(invokers, getConsumerUrl(), invocation);
                     }
                 } catch (Throwable t) {

@@ -188,6 +188,9 @@ public abstract class AbstractRegistry implements Registry {
             try {
                 FileChannel channel = raf.getChannel();
                 try {
+                    /**
+                     * dubbo在操作文件的时候还会对文件进行加锁
+                     */
                     FileLock lock = channel.tryLock();
                     if (lock == null) {
                         throw new IOException("Can not lock the registry cache file " + file.getAbsolutePath() + ", ignore and retry later, maybe multi java process use the file, please config: dubbo.registry.file=xxx.properties");
@@ -329,6 +332,7 @@ public abstract class AbstractRegistry implements Registry {
             subscribed.putIfAbsent(url, new ConcurrentHashSet<NotifyListener>());
             listeners = subscribed.get(url);
         }
+        //为这个url设置监听器们
         listeners.add(listener);
     }
 
@@ -445,6 +449,9 @@ public abstract class AbstractRegistry implements Registry {
             String category = entry.getKey();
             List<URL> categoryList = entry.getValue();
             categoryNotified.put(category, categoryList);
+            /**
+             * 保存到本地文件中
+             */
             saveProperties(url);
             listener.notify(categoryList);
         }

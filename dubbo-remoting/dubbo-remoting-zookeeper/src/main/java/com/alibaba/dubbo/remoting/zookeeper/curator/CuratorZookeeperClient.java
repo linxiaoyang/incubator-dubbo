@@ -123,6 +123,12 @@ public class CuratorZookeeperClient extends AbstractZookeeperClient<CuratorWatch
         client.close();
     }
 
+    /**
+     * 创建子监听器
+     * @param path
+     * @param listener
+     * @return
+     */
     public CuratorWatcher createTargetChildListener(String path, ChildListener listener) {
         return new CuratorWatcherImpl(listener);
     }

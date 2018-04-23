@@ -173,12 +173,21 @@ public class ZookeeperRegistry extends FailbackRegistry {
                         });
                         zkListener = listeners.get(listener);
                     }
+                    /**
+                     * 创建永久节点
+                     */
                     zkClient.create(path, false);
+                    /**
+                     * 对该节点设置监听
+                     */
                     List<String> children = zkClient.addChildListener(path, zkListener);
                     if (children != null) {
                         urls.addAll(toUrlsWithEmpty(url, path, children));
                     }
                 }
+                /**
+                 * 开始更新新的服务信息,服务启动和节点更新回调(前面设置了回调到这里)都会调用到这里
+                 */
                 notify(url, listener, urls);
             }
         } catch (Throwable e) {

@@ -84,6 +84,9 @@ public abstract class AbstractZookeeperClient<TargetChildListener> implements Zo
         }
         TargetChildListener targetListener = listeners.get(listener);
         if (targetListener == null) {
+            /**
+             * 创建子监听器
+             */
             listeners.putIfAbsent(listener, createTargetChildListener(path, listener));
             targetListener = listeners.get(listener);
         }

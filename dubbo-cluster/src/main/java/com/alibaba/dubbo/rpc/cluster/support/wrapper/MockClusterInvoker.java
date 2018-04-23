@@ -32,6 +32,15 @@ import com.alibaba.dubbo.rpc.support.MockInvoker;
 
 import java.util.List;
 
+/**
+ * 服务降级
+ * <p>
+ * 屏蔽(mock=force)
+ * <p>
+ * 容错(mock=fail)
+ *
+ * @param <T>
+ */
 public class MockClusterInvoker<T> implements Invoker<T> {
 
     private static final Logger logger = LoggerFactory.getLogger(MockClusterInvoker.class);
@@ -66,15 +75,25 @@ public class MockClusterInvoker<T> implements Invoker<T> {
 
         String value = directory.getUrl().getMethodParameter(invocation.getMethodName(), Constants.MOCK_KEY, Boolean.FALSE.toString()).trim();
         if (value.length() == 0 || value.equalsIgnoreCase("false")) {
-            //no mock
+            /**
+             * 正常调用
+             */
             result = this.invoker.invoke(invocation);
-        } else if (value.startsWith("force")) {
+        }
+        /**
+         * force 标示强制：直接mock
+         */
+        else if (value.startsWith("force")) {
             if (logger.isWarnEnabled()) {
                 logger.info("force-mock: " + invocation.getMethodName() + " force-mock enabled , url : " + directory.getUrl());
             }
             //force:direct mock
             result = doMockInvoke(invocation, null);
-        } else {
+        }
+        /**
+         * fail 标示：失败的时候才mock
+         */
+        else {
             //fail-mock
             try {
                 result = this.invoker.invoke(invocation);

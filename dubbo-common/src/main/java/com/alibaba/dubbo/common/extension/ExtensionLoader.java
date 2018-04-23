@@ -320,7 +320,7 @@ public class ExtensionLoader<T> {
 
     /**
      * 返回扩展点实例，如果没有指定的扩展点或是还没加载（即实例化）则返回<code>null</code>。注意：此方法不会触发扩展点的加载。
-     * <p />
+     * <p/>
      * 一般应该调用{@link #getExtension(String)}方法获得扩展，这个方法会触发扩展点加载。
      *
      * @see #getExtension(String)
@@ -339,7 +339,7 @@ public class ExtensionLoader<T> {
 
     /**
      * 返回已经加载的扩展点的名字。
-     * <p />
+     * <p/>
      * 一般应该调用{@link #getSupportedExtensions()}方法获得扩展，这个方法会返回所有的扩展点。
      *
      * @see #getSupportedExtensions()
@@ -863,10 +863,38 @@ public class ExtensionLoader<T> {
         return compiler.compile(code, classLoader);
     }
 
+    /**
+     * 创建适配器的扩展类的String
+     *
+     *
+     * 创建这个适配器的扩展类，有几个前提：
+     * 1. 必须有SPI的注解
+     * 2. 被SPI声明的接口中至少一个方法有Adaptive注解。
+     * ProxyFactory
+     * 下面是他的说明：
+     * 当声明再方法上的Adaptive中的value的作用就是，从URL中获取key,value,例如ProxyFactory
+     *
+     *
+     * @Adaptive({Constants.PROXY_KEY})==========="proxy"
+     * <T> Invoker<T> getInvoker(T proxy, Class<T> type, URL url) throws RpcException;
+     *
+     * 如果URL中是dubbo:xxxx?proxy=jdk,而SPI中的值是javassist,那么就是
+     *
+     * String extName = url.getParameter("proxy", "javassist");  //结果是jdk
+     *
+     *
+     * @return
+     */
     private String createAdaptiveExtensionClassCode() {
         StringBuilder codeBuidler = new StringBuilder();
+        /**
+         * 获取这个类型的所有的方法
+         */
         Method[] methods = type.getMethods();
         boolean hasAdaptiveAnnotation = false;
+        /**
+         * 遍历所有方法，至少有一个方法打了Adaptive的注解，否则报错
+         */
         for (Method m : methods) {
             if (m.isAnnotationPresent(Adaptive.class)) {
                 hasAdaptiveAnnotation = true;
@@ -883,24 +911,40 @@ public class ExtensionLoader<T> {
 
         for (Method method : methods) {
             Class<?> rt = method.getReturnType();
+            /**
+             * 参数列表的类型
+             */
             Class<?>[] pts = method.getParameterTypes();
+            /**
+             * 异常列表的类型
+             */
             Class<?>[] ets = method.getExceptionTypes();
-
+            /**
+             * 获得Adaptive的注解
+             */
             Adaptive adaptiveAnnotation = method.getAnnotation(Adaptive.class);
             StringBuilder code = new StringBuilder(512);
+            /**
+             * 如果这个方法没有注解，添加不支持调用此方法的异常
+             */
             if (adaptiveAnnotation == null) {
                 code.append("throw new UnsupportedOperationException(\"method ")
                         .append(method.toString()).append(" of interface ")
                         .append(type.getName()).append(" is not adaptive method!\");");
             } else {
                 int urlTypeIndex = -1;
+                /**
+                 * 寻找列表中的类型是URL.class，记录他的位置，数据放到urlTypeIndex中
+                 */
                 for (int i = 0; i < pts.length; ++i) {
                     if (pts[i].equals(URL.class)) {
                         urlTypeIndex = i;
                         break;
                     }
                 }
-                // found parameter in URL type
+                /**
+                 * 找到了URL类型的参数
+                 * */
                 if (urlTypeIndex != -1) {
                     // Null Point check
                     String s = String.format("\nif (arg%d == null) throw new IllegalArgumentException(\"url == null\");",
@@ -948,8 +992,13 @@ public class ExtensionLoader<T> {
                     code.append(s);
                 }
 
+                /**
+                 * 获取adaptive注解的value
+                 */
                 String[] value = adaptiveAnnotation.value();
-                // value is not set, use the value generated from class name as the key
+                /**
+                 * 如果value没有设置，那么将使用类的名称作为key
+                 */
                 if (value.length == 0) {
                     char[] charArray = type.getSimpleName().toCharArray();
                     StringBuilder sb = new StringBuilder(128);
@@ -967,6 +1016,9 @@ public class ExtensionLoader<T> {
                 }
 
                 boolean hasInvocation = false;
+                /**
+                 * 如果参数列表中有Invocation的实例
+                 */
                 for (int i = 0; i < pts.length; ++i) {
                     if (pts[i].getName().equals("com.alibaba.dubbo.rpc.Invocation")) {
                         // Null Point check
@@ -979,26 +1031,54 @@ public class ExtensionLoader<T> {
                     }
                 }
 
+                /**
+                 * defaultExtName为spi注解中的value
+                 */
                 String defaultExtName = cachedDefaultName;
                 String getNameCode = null;
                 for (int i = value.length - 1; i >= 0; --i) {
                     if (i == value.length - 1) {
+                        /**
+                         * 如果defaultExtName 存在，spi注解中的value存在
+                         */
                         if (null != defaultExtName) {
-                            if (!"protocol".equals(value[i]))
-                                if (hasInvocation)
+                            /**
+                             * value[i]的值不等于"protocol"
+                             */
+                            if (!"protocol".equals(value[i])) {
+                                if (hasInvocation) {
                                     getNameCode = String.format("url.getMethodParameter(methodName, \"%s\", \"%s\")", value[i], defaultExtName);
-                                else
+
+                                } else {
+                                    /**
+                                     *     value[i]="proxy"
+                                     *     defaultExtName="javassist"
+                                     *
+                                     *    String extName = url.getParameter("proxy", "javassist");
+                                     */
                                     getNameCode = String.format("url.getParameter(\"%s\", \"%s\")", value[i], defaultExtName);
-                            else
+
+                                }
+                            } else {
                                 getNameCode = String.format("( url.getProtocol() == null ? \"%s\" : url.getProtocol() )", defaultExtName);
+                            }
                         } else {
-                            if (!"protocol".equals(value[i]))
-                                if (hasInvocation)
+                            /**
+                             * 如果defaultExtName 不存在，spi注解中的value不存在
+                             */
+                            if (!"protocol".equals(value[i])) {
+                                if (hasInvocation) {
                                     getNameCode = String.format("url.getMethodParameter(methodName, \"%s\", \"%s\")", value[i], defaultExtName);
-                                else
+                                } else {
+                                    /**
+                                     * url.getParameter("proxy") 没有默认值
+                                     */
                                     getNameCode = String.format("url.getParameter(\"%s\")", value[i]);
-                            else
+                                }
+                            } else {
                                 getNameCode = "url.getProtocol()";
+
+                            }
                         }
                     } else {
                         if (!"protocol".equals(value[i]))

@@ -95,6 +95,7 @@ public class ExtensionLoader<T> {
 
     private ExtensionLoader(Class<?> type) {
         this.type = type;
+        //type如果是ExtensionFactory类型，那么objectFactory是null,否则是ExtensionFactory类型的适配器类型
         objectFactory = (type == ExtensionFactory.class ? null : ExtensionLoader.getExtensionLoader(ExtensionFactory.class).getAdaptiveExtension());
     }
 
@@ -573,15 +574,37 @@ public class ExtensionLoader<T> {
     private T injectExtension(T instance) {
         try {
             if (objectFactory != null) {
+                /**
+                 * 寻找实例中的所有的方法
+                 */
                 for (Method method : instance.getClass().getMethods()) {
+                    /**
+                     * 将属性的set方法找出来
+                     */
                     if (method.getName().startsWith("set")
                             && method.getParameterTypes().length == 1
                             && Modifier.isPublic(method.getModifiers())) {
+                        /**
+                         * set方法一个参数，所以找到第一个参数
+                         *
+                         * 例如： public void setPeople(People p){
+                         *     this.p=p
+                         * }
+                         */
                         Class<?> pt = method.getParameterTypes()[0];
                         try {
+                            /**
+                             * 获取属性名称 ：people
+                             */
                             String property = method.getName().length() > 3 ? method.getName().substring(3, 4).toLowerCase() + method.getName().substring(4) : "";
+                            /**
+                             * 从对象工厂中获取，此类型，此名称的扩展的对象
+                             */
                             Object object = objectFactory.getExtension(pt, property);
                             if (object != null) {
+                                /**
+                                 * 利用反射添加进实例中，完成ioc
+                                 */
                                 method.invoke(instance, object);
                             }
                         } catch (Exception e) {

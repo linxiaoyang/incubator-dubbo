@@ -400,6 +400,10 @@ public class ExtensionLoader<T> {
         }
     }
 
+    /**
+     * 获取所有支持此类型的类在SPI体系中的名称，也就是文件中命名的key
+     * @return
+     */
     public Set<String> getSupportedExtensions() {
         Map<String, Class<?>> clazzes = getExtensionClasses();
         return Collections.unmodifiableSet(new TreeSet<String>(clazzes.keySet()));

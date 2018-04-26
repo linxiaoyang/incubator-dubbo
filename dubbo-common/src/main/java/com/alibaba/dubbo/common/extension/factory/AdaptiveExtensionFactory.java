@@ -26,6 +26,8 @@ import java.util.List;
 
 /**
  * AdaptiveExtensionFactory
+ * <p>
+ * 是dubbo ioc的基础
  */
 @Adaptive
 public class AdaptiveExtensionFactory implements ExtensionFactory {
@@ -33,14 +35,31 @@ public class AdaptiveExtensionFactory implements ExtensionFactory {
     private final List<ExtensionFactory> factories;
 
     public AdaptiveExtensionFactory() {
+        /**
+         * 找到ExtensionFactory的ExtensionLoader
+         */
         ExtensionLoader<ExtensionFactory> loader = ExtensionLoader.getExtensionLoader(ExtensionFactory.class);
         List<ExtensionFactory> list = new ArrayList<ExtensionFactory>();
         for (String name : loader.getSupportedExtensions()) {
+            /**
+             * 根据name获取具体的扩展，放到list中
+             */
             list.add(loader.getExtension(name));
         }
+        /**
+         * 赋值给factories
+         */
         factories = Collections.unmodifiableList(list);
     }
 
+    /**
+     * 从具体的工厂中获取扩展，目前有SPI和Spring两种形式，获取的到就返回，获取不到就返回null
+     *
+     * @param type object type.
+     * @param name object name.
+     * @param <T>
+     * @return
+     */
     public <T> T getExtension(Class<T> type, String name) {
         for (ExtensionFactory factory : factories) {
             T extension = factory.getExtension(type, name);

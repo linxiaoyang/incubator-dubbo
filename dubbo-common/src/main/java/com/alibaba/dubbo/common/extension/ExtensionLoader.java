@@ -95,7 +95,9 @@ public class ExtensionLoader<T> {
 
     private ExtensionLoader(Class<?> type) {
         this.type = type;
-        //type如果是ExtensionFactory类型，那么objectFactory是null,否则是ExtensionFactory类型的适配器类型
+        /**
+         * type如果是ExtensionFactory类型，那么objectFactory是null,否则是ExtensionFactory类型的适配器类型
+         */
         objectFactory = (type == ExtensionFactory.class ? null : ExtensionLoader.getExtensionLoader(ExtensionFactory.class).getAdaptiveExtension());
     }
 
@@ -110,13 +112,21 @@ public class ExtensionLoader<T> {
         if (!type.isInterface()) {
             throw new IllegalArgumentException("Extension type(" + type + ") is not interface!");
         }
+        /**
+         * 这个类型必须加上SPI注解，否则报错
+         */
         if (!withExtensionAnnotation(type)) {
             throw new IllegalArgumentException("Extension type(" + type +
                     ") is not extension, because WITHOUT @" + SPI.class.getSimpleName() + " Annotation!");
         }
-
+        /**
+         * 从缓存中获取
+         */
         ExtensionLoader<T> loader = (ExtensionLoader<T>) EXTENSION_LOADERS.get(type);
         if (loader == null) {
+            /**
+             * 取不到创建一个放入EXTENSION_LOADERS中
+             */
             EXTENSION_LOADERS.putIfAbsent(type, new ExtensionLoader<T>(type));
             loader = (ExtensionLoader<T>) EXTENSION_LOADERS.get(type);
         }
@@ -402,6 +412,7 @@ public class ExtensionLoader<T> {
 
     /**
      * 获取所有支持此类型的类在SPI体系中的名称，也就是文件中命名的key
+     *
      * @return
      */
     public Set<String> getSupportedExtensions() {
@@ -641,6 +652,9 @@ public class ExtensionLoader<T> {
             synchronized (cachedClasses) {
                 classes = cachedClasses.get();
                 if (classes == null) {
+                    /**
+                     * 开始加载
+                     */
                     classes = loadExtensionClasses();
                     cachedClasses.set(classes);
                 }
@@ -858,6 +872,9 @@ public class ExtensionLoader<T> {
     }
 
     private Class<?> getAdaptiveExtensionClass() {
+        /**
+         * 触发SPI流程的扫描
+         */
         getExtensionClasses();
         /**
          * 如果通过上面的步骤可以获取到cachedAdaptiveClass直接返回，如果不行的话，就得考虑自己进行利用动态代理创建一个了
@@ -892,8 +909,8 @@ public class ExtensionLoader<T> {
 
     /**
      * 创建适配器的扩展类的String
-     *
-     *
+     * <p>
+     * <p>
      * 创建这个适配器的扩展类，有几个前提：
      * 1. 必须有SPI的注解
      * 2. 被SPI声明的接口中至少一个方法有Adaptive注解。
@@ -901,16 +918,12 @@ public class ExtensionLoader<T> {
      * 下面是他的说明：
      * 当声明再方法上的Adaptive中的value的作用就是，从URL中获取key,value,例如ProxyFactory
      *
-     *
-     * @Adaptive({Constants.PROXY_KEY})==========="proxy"
-     * <T> Invoker<T> getInvoker(T proxy, Class<T> type, URL url) throws RpcException;
-     *
-     * 如果URL中是dubbo:xxxx?proxy=jdk,而SPI中的值是javassist,那么就是
-     *
-     * String extName = url.getParameter("proxy", "javassist");  //结果是jdk
-     *
-     *
      * @return
+     * @Adaptive({Constants.PROXY_KEY})==========="proxy" <T> Invoker<T> getInvoker(T proxy, Class<T> type, URL url) throws RpcException;
+     * <p>
+     * 如果URL中是dubbo:xxxx?proxy=jdk,而SPI中的值是javassist,那么就是
+     * <p>
+     * String extName = url.getParameter("proxy", "javassist");  //结果是jdk
      */
     private String createAdaptiveExtensionClassCode() {
         StringBuilder codeBuidler = new StringBuilder();

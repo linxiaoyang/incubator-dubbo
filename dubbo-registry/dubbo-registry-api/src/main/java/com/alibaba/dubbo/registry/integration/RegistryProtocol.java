@@ -296,9 +296,13 @@ public class RegistryProtocol implements Protocol {
 
     @SuppressWarnings("unchecked")
     public <T> Invoker<T> refer(Class<T> type, URL url) throws RpcException {
+        /**
+         * 替换协议，过来的时候协议是"registry",过来之后就替换成具体的注册协议，例如我们常用的注册中心的协议是zookeeper,
+         * 协议就替换成功了"zookeeper"
+         */
         url = url.setProtocol(url.getParameter(Constants.REGISTRY_KEY, Constants.DEFAULT_REGISTRY)).removeParameter(Constants.REGISTRY_KEY);
         /**
-         * 根据url获取注册中心注册器，如果协议是zk，就是zk的client之类的操作
+         * 根据url中的协议，例如"zookeeper"获取注册中心注册器，如果协议是zk，就是zk的client之类的操作
          */
         Registry registry = registryFactory.getRegistry(url);
         if (RegistryService.class.equals(type)) {
@@ -330,13 +334,16 @@ public class RegistryProtocol implements Protocol {
      * @return
      */
     private <T> Invoker<T> doRefer(Cluster cluster, Registry registry, Class<T> type, URL url) {
+        /**
+         * 根据type和url创建RegistryDirectory的实例
+         */
         RegistryDirectory<T> directory = new RegistryDirectory<T>(type, url);
         directory.setRegistry(registry);
         directory.setProtocol(protocol);
         // all attributes of REFER_KEY
         Map<String, String> parameters = new HashMap<String, String>(directory.getUrl().getParameters());
         /**
-         * 生成订阅的URL
+         * 生成订阅的URL，注意他的协议是：consumer
          */
         URL subscribeUrl = new URL(Constants.CONSUMER_PROTOCOL, parameters.remove(Constants.REGISTER_IP_KEY), 0, type.getName(), parameters);
         if (!Constants.ANY_VALUE.equals(url.getServiceInterface())
@@ -349,6 +356,10 @@ public class RegistryProtocol implements Protocol {
         }
         /**
          * 当数据发生改变的时候进行通知
+         *
+         * 添加了一个参数：
+         * key：category
+         * value: providers,configurators,routers
          */
         directory.subscribe(subscribeUrl.addParameter(Constants.CATEGORY_KEY,
                 Constants.PROVIDERS_CATEGORY

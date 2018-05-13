@@ -317,6 +317,11 @@ public abstract class AbstractRegistry implements Registry {
         registered.remove(url);
     }
 
+    /**
+     * 对这个url设置监听器listener
+     * @param url 订阅条件，不允许为空，如：consumer://10.20.153.10/com.alibaba.foo.BarService?version=1.0.0&application=kylin
+     * @param listener 变更事件监听器，不允许为空
+     */
     public void subscribe(URL url, NotifyListener listener) {
         if (url == null) {
             throw new IllegalArgumentException("subscribe url == null");
@@ -327,8 +332,14 @@ public abstract class AbstractRegistry implements Registry {
         if (logger.isInfoEnabled()){
             logger.info("Subscribe: " + url);
         }
+        /**
+         * 缓存中获取此consumerUrl对应的NotifyListener的Set
+         */
         Set<NotifyListener> listeners = subscribed.get(url);
         if (listeners == null) {
+            /**
+             * 不存在就创建一个Set,放入subscribed中
+             */
             subscribed.putIfAbsent(url, new ConcurrentHashSet<NotifyListener>());
             listeners = subscribed.get(url);
         }

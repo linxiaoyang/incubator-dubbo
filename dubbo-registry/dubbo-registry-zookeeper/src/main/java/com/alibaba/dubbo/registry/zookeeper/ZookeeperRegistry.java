@@ -38,7 +38,6 @@ import java.util.concurrent.ConcurrentMap;
 
 /**
  * ZookeeperRegistry
- *
  */
 public class ZookeeperRegistry extends FailbackRegistry {
 
@@ -52,6 +51,12 @@ public class ZookeeperRegistry extends FailbackRegistry {
 
     private final Set<String> anyServices = new ConcurrentHashSet<String>();
 
+    /**
+     * zkListeners 的结构：
+     *
+     * key是 consumerUrl
+     * value是 ConcurrentMap<NotifyListener, ChildListener>
+     */
     private final ConcurrentMap<URL, ConcurrentMap<NotifyListener, ChildListener>> zkListeners = new ConcurrentHashMap<URL, ConcurrentMap<NotifyListener, ChildListener>>();
 
     private final ZookeeperClient zkClient;
@@ -158,14 +163,27 @@ public class ZookeeperRegistry extends FailbackRegistry {
                 }
             } else {
                 List<URL> urls = new ArrayList<URL>();
-                for (String path : toCategoriesPath(url)) {
+                String[] categoriesPaths = toCategoriesPath(url);
+                logger.info("===categoriesPaths:" + categoriesPaths.toString());
+                for (String path : categoriesPaths) {
                     ConcurrentMap<NotifyListener, ChildListener> listeners = zkListeners.get(url);
                     if (listeners == null) {
                         zkListeners.putIfAbsent(url, new ConcurrentHashMap<NotifyListener, ChildListener>());
                         listeners = zkListeners.get(url);
                     }
+                    /**
+                     * 从zkListeners的value（ConcurrentMap<NotifyListener, ChildListener>）中，
+                     * 根据map中的key NotifyListener获取他的ChildListener zkListener
+                     */
                     ChildListener zkListener = listeners.get(listener);
                     if (zkListener == null) {
+                        /**
+                         * 如果不存在就创建一个Child监听器
+                         *
+                         * child监听器：是指在福路径下的内容发生改变的时候，就会触发监听器的功能。
+                         *
+                         * 例如 父路径是 /dubbo ,那么/dubbo里面子路径的内容发生改变的时候就会触发回调
+                         */
                         listeners.putIfAbsent(listener, new ChildListener() {
                             public void childChanged(String parentPath, List<String> currentChilds) {
                                 ZookeeperRegistry.this.notify(url, listener, toUrlsWithEmpty(url, parentPath, currentChilds));
@@ -178,7 +196,7 @@ public class ZookeeperRegistry extends FailbackRegistry {
                      */
                     zkClient.create(path, false);
                     /**
-                     * 对该节点设置监听
+                     * 对这个路径设置监听，返回这个路径下面的内容
                      */
                     List<String> children = zkClient.addChildListener(path, zkListener);
                     if (children != null) {

@@ -131,7 +131,14 @@ public class RegistryDirectory<T> extends AbstractDirectory<T> implements Notify
     }
 
     public void subscribe(URL url) {
+        /**
+         * 设置consumerUrl
+         */
         setConsumerUrl(url);
+        /**
+         * 注册中心的注册器，设置订阅。将ConsumerUrl和RegistryDirectory一起设置进去，
+         * 其中RegistryDirectory也是NotifyListener的实例
+         */
         registry.subscribe(url, this);
     }
 
